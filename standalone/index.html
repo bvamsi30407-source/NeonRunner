@@ -109,7 +109,7 @@
         <div class="dialog-standard-view" id="revive-options-flow">
           <div class="chassis-status-tag">CHASSIS SYNC INTERRUPTED</div>
           <h3 class="modal-heading">RECONSTRUCT AVATAR?</h3>
-          <p class="modal-description">Spend <span class="cyan-text">5 Shards</span> or <span class="pink-text">Watch a Sponsor Transmission</span> to continue your highscore run!</p>
+          <p class="modal-description">Spend <span class="cyan-text">5 Shards</span> to continue your highscore run!</p>
           
           <div class="score-panel">
             <span class="score-lbl">CURRENT SCORE</span>
@@ -123,28 +123,8 @@
               <span class="badge" id="revive-shards-badge">BAL: 0</span>
             </button>
             
-            <!-- Video Ad action trigger -->
-            <button class="btn btn-primary" id="btn-watch-ad-revive">
-              <i data-lucide="play" class="btn-icon animate-pulse"></i> WATCH TRANSMISSION
-            </button>
-            
             <button class="decline-link" id="btn-decline-revive">No thanks, End Game</button>
           </div>
-        </div>
-
-        <!-- Video Ad Loader deck simulator -->
-        <div class="dialog-ad-view hidden" id="revive-ad-playing-flow">
-          <div class="bounce-circ">
-            <i data-lucide="play" class="text-pink animate-pulse"></i>
-          </div>
-          <h3 class="ad-title font-mono font-bold text-pink animate-pulse">LOADING SPONSOR TRANSMISSION...</h3>
-          <p class="ad-timer" id="simulated-ad-timer-text">[Simulated Video Ad: 5s remaining]</p>
-          
-          <div class="progress-bar-container">
-            <div class="progress-bar-fill shadow-pink" id="revive-ad-progress"></div>
-          </div>
-          
-          <span class="stream-info">STREAMING OPTIMIZED SYSTEM BACKUP DATA</span>
         </div>
       </div>
     </div>
@@ -175,45 +155,6 @@
             EXIT TO LOBBY TERMINAL
           </button>
         </div>
-      </div>
-    </div>
-
-    <!-- FULL SCREEN INTERSTITIAL SPONSOR AD OVERLAY -->
-    <div class="overlay-layer hidden select-none" id="interstitial-overlay">
-      <div class="interstitial-modal">
-        <div class="corner-bracket top-left"></div>
-        <div class="corner-bracket top-right"></div>
-        <div class="corner-bracket bottom-left"></div>
-        <div class="corner-bracket bottom-right"></div>
-
-        <div class="interstitial-icon-ring animate-pulse">
-          <i data-lucide="sparkles"></i>
-        </div>
-
-        <h2 class="ad-title animate-pulse">LOADING SPONSOR TRANSMISSION...</h2>
-
-        <div class="adsense-banner-placeholder">
-          <p class="ad-timer" id="interstitial-countdown-display">[Simulated Video Ad: 5s remaining]</p>
-          <div class="ad-separator"></div>
-          <div class="ad-details">
-            <span class="stream-info cyan-text text-left">RETRO-AD DATA STREAM</span>
-            <p class="ad-italic">"GET ULTRA-CHARGED CYBER GLOW DRINK. FUEL YOUR QUANTUM LIGHT SPEED RUN!"</p>
-          </div>
-        </div>
-
-        <div class="progress-bar-container">
-          <div class="progress-bar-fill shadow-cyan" id="interstitial-ad-progress"></div>
-        </div>
-
-        <!-- Render active Close or satellite searching text status -->
-        <button class="btn btn-amber py-4 uppercase font-black hidden" id="btn-close-interstitial">
-          CLOSE AD
-        </button>
-        <div class="satellite-bar text-uppercase font-mono text-gray" id="interstitial-searching-bar">
-          SATELLITE SIGNAL OPTIMIZING... 5S
-        </div>
-
-        <p class="footer-crypto">TRANSMISSION ENCRYPTED VIA G-SYNC PROTOCOLS</p>
       </div>
     </div>
 

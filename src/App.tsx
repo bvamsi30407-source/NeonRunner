@@ -64,15 +64,6 @@ export default function App() {
   // Speed and speed milestone indicator
   const [currentSpeed, setCurrentSpeed] = useState<number>(5.5);
 
-  // Game over and Interstitial ad trackers
-  const [gameOverCount, setGameOverCount] = useState<number>(0);
-  const [isInterstitialAdPlaying, setIsInterstitialAdPlaying] = useState<boolean>(false);
-  const [interstitialTimer, setInterstitialTimer] = useState<number>(5);
-
-  // Revive Simulated ad countdown trackers
-  const [isReviveAdPlaying, setIsReviveAdPlaying] = useState<boolean>(false);
-  const [reviveAdTimer, setReviveAdTimer] = useState<number>(5);
-
   // Load persistence configurations on startup
   useEffect(() => {
     const savedHighScore = safeStorage.getItem('neon_runner_highscore');
@@ -101,62 +92,14 @@ export default function App() {
       setIsMuted(isMuteVal);
       soundManager.isMuted = isMuteVal;
     }
-
-    const savedGameOverCount = safeStorage.getItem('neon_runner_gameover_count');
-    if (savedGameOverCount) {
-      setGameOverCount(parseInt(savedGameOverCount, 10));
-    }
   }, []);
 
-  // Interval timer for Revive Ad countdown (5s)
-  useEffect(() => {
-    let timerId: any = null;
-    if (isReviveAdPlaying) {
-      timerId = setInterval(() => {
-        setReviveAdTimer((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerId);
-            setIsReviveAdPlaying(false);
-            // Complete the ad revive automatically!
-            handleReviveSuccess('ad');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (timerId) clearInterval(timerId);
-    };
-  }, [isReviveAdPlaying]);
-
-  // Interval timer for Interstitial Ad countdown (5s)
-  useEffect(() => {
-    let timerId: any = null;
-    if (isInterstitialAdPlaying) {
-      timerId = setInterval(() => {
-        setInterstitialTimer((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerId);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (timerId) clearInterval(timerId);
-    };
-  }, [isInterstitialAdPlaying]);
-
   // Revive success trigger
-  const handleReviveSuccess = (method: 'shards' | 'ad') => {
-    if (method === 'shards') {
-      // Deduct exactly 5 shards as requested
-      const nextCumulative = Math.max(0, cumulativeShards - 5);
-      setCumulativeShards(nextCumulative);
-      safeStorage.setItem('neon_runner_shards', nextCumulative.toString());
-    }
+  const handleReviveSuccess = () => {
+    // Deduct exactly 5 shards as requested
+    const nextCumulative = Math.max(0, cumulativeShards - 5);
+    setCumulativeShards(nextCumulative);
+    safeStorage.setItem('neon_runner_shards', nextCumulative.toString());
 
     setHasRevivedInRun(true);
     setTriggerRevive(true);
@@ -165,13 +108,6 @@ export default function App() {
 
   // Update GameState transitions
   const handleStateChange = (newState: GameStateObj) => {
-    if (newState === 'PLAYING' || newState === 'MENU') {
-      if (gameOverCount >= 5) {
-        setInterstitialTimer(5);
-        setIsInterstitialAdPlaying(true);
-        return;
-      }
-    }
     setGameState(newState);
     if (newState === 'PLAYING') {
       // Reset revive constraints on new clear game
@@ -217,30 +153,16 @@ export default function App() {
       setHighScore(finalScore);
       safeStorage.setItem('neon_runner_highscore', finalScore.toString());
     }
-
-    // Increment game over count when game is finalized on complete crash
-    const nextCount = gameOverCount + 1;
-    setGameOverCount(nextCount);
-    safeStorage.setItem('neon_runner_gameover_count', nextCount.toString());
   };
 
   const handleDeclineRevive = () => {
-    const nextCount = gameOverCount + 1;
-    setGameOverCount(nextCount);
-    safeStorage.setItem('neon_runner_gameover_count', nextCount.toString());
-
     // Check highscore immediately
     if (currentScore > highScore) {
       setHighScore(currentScore);
       safeStorage.setItem('neon_runner_highscore', currentScore.toString());
     }
 
-    if (nextCount >= 5) {
-      setInterstitialTimer(5);
-      setIsInterstitialAdPlaying(true);
-    } else {
-      setGameState('GAMEOVER');
-    }
+    setGameState('GAMEOVER');
   };
 
   // Spend shards to unlock custom neon trail colors
@@ -478,100 +400,62 @@ export default function App() {
                 {gameState === 'REVIVING' && (
                   <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col justify-center items-center px-6 text-center z-30" id="revive-reconstruct-overlay">
                     
-                    {isReviveAdPlaying ? (
-                      /* SIMULATED AD LOADING DECK */
-                      <div className="flex flex-col items-center max-w-md w-full bg-slate-900/95 border border-pink-500/40 rounded-2xl p-8 shadow-2xl shadow-pink-500/15" id="ad-loader-deck">
-                        <div className="relative w-12 h-12 bg-pink-950/20 rounded-full flex items-center justify-center border border-pink-500/30 mb-4 animate-bounce">
-                          <Play className="w-5 h-5 text-pink-400 animate-pulse ml-0.5" />
-                        </div>
-                        <h3 className="text-sm font-mono uppercase text-pink-400 font-bold tracking-wider animate-pulse">
-                          LOADING SPONSOR TRANSMISSION...
-                        </h3>
-                        <p className="text-base font-mono text-white font-extrabold tracking-tight mt-2" id="simulated-ad-timer-text">
-                          [Simulated Video Ad Playing: {reviveAdTimer}s remaining]
-                        </p>
+                    {/* OPTION SELECTION OVERLAY */}
+                    <div className="flex flex-col items-center bg-slate-900/95 border-2 border-pink-500 rounded-2xl p-6 md:p-8 max-w-sm w-full shadow-2xl shadow-pink-950/40 relative" id="reconstruct-avatar-popup">
+                      <div className="absolute top-3 right-3 flex items-center gap-1 bg-pink-950/40 border border-pink-500/30 text-pink-400 rounded-lg px-2.5 py-1 text-[9px] font-mono font-bold uppercase animate-pulse">
+                        CRCH: 1
+                      </div>
 
-                        {/* Progress Bar container */}
-                        <div className="w-full bg-slate-950 border border-slate-800 rounded-full h-3 mt-6 overflow-hidden">
-                          <div 
-                            className="bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400 h-full transition-all duration-1000 ease-linear shadow-[0_0_12px_rgba(236,72,153,0.7)]" 
-                            style={{ width: `${(5 - reviveAdTimer) * 20}%` }}
-                          />
-                        </div>
+                      <div className="text-cyan-400 text-[10px] font-mono tracking-widest uppercase border border-cyan-500/30 bg-cyan-950/30 px-3 py-1 rounded-full mb-3 mt-2 animate-pulse">
+                        CHASSIS SYNC INTERRUPTED
+                      </div>
+
+                      <h3 className="text-xl md:text-2xl font-black tracking-tighter text-white mb-1 uppercase">
+                        RECONSTRUCT AVATAR?
+                      </h3>
+                      <p className="text-xs text-slate-300 font-mono mb-4 px-2 tracking-tight">
+                        Spend <span className="text-cyan-400 font-bold">5 Shards</span> to keep your score of
+                      </p>
+
+                      <div className="bg-slate-950/80 border border-purple-500/20 rounded-xl px-6 py-2 mb-6">
+                        <span className="text-[9px] font-mono text-slate-500 block uppercase">CURRENT SCORE</span>
+                        <span className="text-xl font-mono font-black text-yellow-400 tracking-wider text-glow-yellow">{currentScore} PTS</span>
+                      </div>
+
+                      <div className="flex flex-col gap-3 w-full">
                         
-                        <span className="text-[9px] font-mono text-slate-500 uppercase mt-4 block">STREAMING OPTIMIZED SYSTEM BACKUP DATA</span>
-                      </div>
-                    ) : (
-                      /* OPTION SELECTION OVERLAY */
-                      <div className="flex flex-col items-center bg-slate-900/95 border-2 border-pink-500 rounded-2xl p-6 md:p-8 max-w-sm w-full shadow-2xl shadow-pink-950/40 relative" id="reconstruct-avatar-popup">
-                        <div className="absolute top-3 right-3 flex items-center gap-1 bg-pink-950/40 border border-pink-500/30 text-pink-400 rounded-lg px-2.5 py-1 text-[9px] font-mono font-bold uppercase animate-pulse">
-                          CRCH: 1 / GAME: {gameOverCount}
-                        </div>
+                        {/* OPTION 1: Spend 5 Shards */}
+                        <button
+                          onClick={() => handleReviveSuccess()}
+                          disabled={cumulativeShards < 5}
+                          className={`flex items-center justify-between px-5 py-3.5 rounded-xl border font-mono font-bold transition-all text-xs cursor-pointer ${
+                            cumulativeShards >= 5
+                              ? 'bg-cyan-500 border-cyan-400 text-slate-950 hover:bg-cyan-400 shadow-lg hover:shadow-cyan-400/20 hover:scale-[1.01]'
+                              : 'bg-slate-950/30 border-slate-800 text-slate-500 cursor-not-allowed'
+                          }`}
+                          id="spend-shards-revive-btn"
+                        >
+                          <span className="flex items-center gap-2 uppercase">
+                            <Coins className="w-4 h-4" />
+                            Spend 5 Shards
+                          </span>
+                          <span className="text-[10px] border px-1.5 py-0.5 rounded border-slate-800 bg-slate-900/60">
+                            BAL: {cumulativeShards}
+                          </span>
+                        </button>
 
-                        <div className="text-cyan-400 text-[10px] font-mono tracking-widest uppercase border border-cyan-500/30 bg-cyan-950/30 px-3 py-1 rounded-full mb-3 mt-2 animate-pulse">
-                          CHASSIS SYNC INTERRUPTED
-                        </div>
-
-                        <h3 className="text-xl md:text-2xl font-black tracking-tighter text-white mb-1 uppercase">
-                          RECONSTRUCT AVATAR?
-                        </h3>
-                        <p className="text-xs text-slate-300 font-mono mb-4 px-2 tracking-tight">
-                          Spend <span className="text-cyan-400 font-bold">5 Shards</span> or <span className="text-pink-400 font-bold">Watch a Dev Feed</span> to keep your score of
-                        </p>
-
-                        <div className="bg-slate-950/80 border border-purple-500/20 rounded-xl px-6 py-2 mb-6">
-                          <span className="text-[9px] font-mono text-slate-500 block uppercase">CURRENT SCORE</span>
-                          <span className="text-xl font-mono font-black text-yellow-400 tracking-wider text-glow-yellow">{currentScore} PTS</span>
-                        </div>
-
-                        <div className="flex flex-col gap-3 w-full">
-                          
-                          {/* OPTION 1: Spend 5 Shards */}
-                          <button
-                            onClick={() => handleReviveSuccess('shards')}
-                            disabled={cumulativeShards < 5}
-                            className={`flex items-center justify-between px-5 py-3.5 rounded-xl border font-mono font-bold transition-all text-xs cursor-pointer ${
-                              cumulativeShards >= 5
-                                ? 'bg-cyan-500 border-cyan-400 text-slate-950 hover:bg-cyan-400 shadow-lg hover:shadow-cyan-400/20 hover:scale-[1.01]'
-                                : 'bg-slate-950/30 border-slate-800 text-slate-500 cursor-not-allowed'
-                            }`}
-                            id="spend-shards-revive-btn"
-                          >
-                            <span className="flex items-center gap-2 uppercase">
-                              <Coins className="w-4 h-4" />
-                              Spend 5 Shards
-                            </span>
-                            <span className="text-[10px] border px-1.5 py-0.5 rounded border-slate-800 bg-slate-900/60">
-                              BAL: {cumulativeShards}
-                            </span>
-                          </button>
-
-                          {/* OPTION 2: Watch Ad */}
-                          <button
-                            onClick={() => {
-                              setReviveAdTimer(5);
-                              setIsReviveAdPlaying(true);
-                            }}
-                            className="flex items-center justify-center gap-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold px-5 py-3.5 rounded-xl border-t border-pink-400/30 shadow-lg hover:shadow-pink-500/20 hover:scale-[1.01] transition-all cursor-pointer text-xs uppercase"
-                            id="watch-dev-feed-btn"
-                          >
-                            <Play className="w-4 h-4 text-white animate-pulse" />
-                            Watch a Dev Feed
-                          </button>
-
-                          {/* OPTION 3: Decline */}
-                          <button
-                            onClick={handleDeclineRevive}
-                            className="text-[10px] uppercase font-mono font-bold text-slate-500 hover:text-red-400 transition-colors mt-2 tracking-widest cursor-pointer hover:underline"
-                            id="decline-revive-btn"
-                          >
-                            No thanks, End Game
-                          </button>
-
-                        </div>
+                        {/* OPTION 3: Decline */}
+                        <button
+                          onClick={handleDeclineRevive}
+                          className="text-[10px] uppercase font-mono font-bold text-slate-500 hover:text-red-400 transition-colors mt-2 tracking-widest cursor-pointer hover:underline"
+                          id="decline-revive-btn"
+                        >
+                          No thanks, End Game
+                        </button>
 
                       </div>
-                    )}
+
+                    </div>
 
                   </div>
                 )}
@@ -631,75 +515,6 @@ export default function App() {
         </p>
       </footer>
 
-      {/* FULL-SCREEN INTERSTITIAL SPONSOR AD OVERLAY */}
-      {isInterstitialAdPlaying && (
-        <div className="fixed inset-0 bg-[#020208] z-[9999] flex flex-col justify-center items-center px-6 py-8 text-center" id="full-screen-interstitial-overlay">
-          
-          {/* Subtle moving retro scanlines background */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,_rgba(0,0,0,0.25)_50%),_linear-gradient(90deg,_rgba(255,0,0,0.06),_rgba(0,255,0,0.02),_rgba(0,0,255,0.06))] bg-[size:100%_4px,_3px_100%] pointer-events-none" />
-
-          <div className="max-w-md w-full bg-[#080814]/95 border-2 border-cyan-500 rounded-3xl p-8 shadow-[0_0_50px_rgba(6,182,212,0.35)] flex flex-col items-center relative overflow-hidden">
-            
-            {/* Corner retro-tech brackets */}
-            <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-cyan-400" />
-            <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-cyan-400" />
-            <div className="absolute bottom-4 left-4 w-4 h-4 border-b-2 border-l-2 border-cyan-400" />
-            <div className="absolute bottom-4 right-4 w-4 h-4 border-b-2 border-r-2 border-cyan-400" />
-
-            <div className="w-16 h-16 bg-cyan-950/40 border border-cyan-500/50 rounded-full flex items-center justify-center mb-6 animate-pulse shadow-[0_0_15px_rgba(6,182,212,0.2)]">
-              <Sparkles className="w-8 h-8 text-cyan-400" />
-            </div>
-
-            <h2 className="text-xl md:text-2xl font-black tracking-widest text-cyan-400 font-mono animate-pulse uppercase">
-              LOADING SPONSOR TRANSMISSION...
-            </h2>
-
-            <div className="bg-slate-950/80 border border-cyan-500/20 rounded-2xl px-6 py-4 my-6 w-full shadow-inner">
-              <p className="text-lg md:text-xl font-mono text-white font-black tracking-tight" id="interstitial-countdown-display">
-                [Simulated Video Ad Playing: {interstitialTimer}s remaining]
-              </p>
-              
-              {/* Fake Premium Retro Advertisement */}
-              <div className="mt-4 border-t border-cyan-950/30 pt-3 text-left">
-                <span className="text-[8px] font-mono text-cyan-500 block uppercase tracking-wider">RETRO-AD DATA STREAM</span>
-                <p className="text-xs font-mono text-slate-300 mt-1 italic uppercase leading-tight">
-                  "GET ULTRA-CHARGED CYBER GLOW DRINK. FUEL YOUR QUANTUM LIGHT SPEED RUN!"
-                </p>
-              </div>
-            </div>
-
-            {/* Progress countdown indicator */}
-            <div className="w-full bg-slate-950 border border-slate-800 rounded-full h-3 overflow-hidden select-none mb-6">
-              <div 
-                className="bg-cyan-400 h-full transition-all duration-1000 ease-linear shadow-[0_0_10px_rgba(6,182,212,0.5)]" 
-                style={{ width: `${(5 - interstitialTimer) * 20}%` }}
-              />
-            </div>
-
-            {/* Close Button shown only when countdown is 0 */}
-            {interstitialTimer === 0 ? (
-              <button
-                onClick={() => {
-                  setGameOverCount(0);
-                  safeStorage.setItem('neon_runner_gameover_count', '0');
-                  setIsInterstitialAdPlaying(false);
-                  setGameState('MENU');
-                }}
-                className="w-full bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-black tracking-widest uppercase font-mono py-4 px-6 rounded-2xl border-t border-white/20 hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all cursor-pointer hover:scale-[1.02] text-sm animate-pulse"
-                id="close-sponsor-ad-btn"
-              >
-                Close Ad
-              </button>
-            ) : (
-              <div className="w-full bg-slate-950/80 border border-slate-900 rounded-2xl font-mono text-slate-500 text-[10px] px-6 py-3.5 select-none uppercase tracking-wider">
-                SATELLITE SIGNAL OPTIMIZING... {interstitialTimer}S
-              </div>
-            )}
-
-            <p className="text-[8px] font-mono text-slate-600 mt-6 uppercase leading-none tracking-widest">TRANSMISSION ENCRYPTED VIA G-SYNC PROTOCOLS</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

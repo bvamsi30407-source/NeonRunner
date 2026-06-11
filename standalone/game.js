@@ -1,145 +1,11 @@
 /**
  * Cyberspace Runner - Standalone Retro Arcade Game Engine
- * Features: Pure Web Audio Synthesis, Canvas Game Loop, Local Storage Shop, and Ads SDK hooks.
+ * Features: Pure Web Audio Synthesis, Canvas Game Loop, Local Storage Shop.
  */
 
 // ==========================================
-// 1. ADVERTISING SDK HOOKS (MONETIZATION REGISTRY)
+// 1. ENGINE START
 // ==========================================
-// Swap the inner simulation functions below to link with GamePix, GameDistribution, or AdSense.
-
-const AD_CONFIG = {
-  provider: 'SIMULATED', // Options: 'SIMULATED' | 'GAMEPIX' | 'GAMEDISTRIBUTION' | 'ADSENSE'
-  interstitialFrequency: 3, // Play interstitial ad every X gameovers
-  gameId: 'cyber_runner_101' // Placeholder for your developer publisher IDs
-};
-
-/**
- * Check if the target ad SDK is initialized and ready.
- */
-function isAdSDKReady() {
-  switch (AD_CONFIG.provider) {
-    case 'GAMEPIX':
-      return typeof window.GamePix !== 'undefined';
-    case 'GAMEDISTRIBUTION':
-      return typeof window.gdsdk !== 'undefined';
-    case 'ADSENSE':
-      return typeof window.adBreak !== 'undefined';
-    default:
-      return true; // Simulated is always ready
-  }
-}
-
-/**
- * Request & display an Interstitial Ad (called on menu exit or game over thresholds).
- * @param {Function} onAdCloseCallback - Actions to execute once the ad completes or is dismissed (e.g. Resume Game).
- */
-function sdkShowInterstitialAd(onAdCloseCallback) {
-  console.log(`[AdSDK] Requesting Interstitial Ad via provider: ${AD_CONFIG.provider}`);
-  
-  if (AD_CONFIG.provider === 'GAMEPIX' && isAdSDKReady()) {
-    // GamePix standard Interstitial Ad API
-    console.log("[GamePix] Invoking GamePix.interstitialAd()");
-    window.GamePix.interstitialAd().then(() => {
-      onAdCloseCallback();
-    }).catch((err) => {
-      console.warn("GamePix Interstitial ad failed, running fallback close:", err);
-      onAdCloseCallback();
-    });
-    return;
-  }
-
-  if (AD_CONFIG.provider === 'GAMEDISTRIBUTION' && isAdSDKReady()) {
-    // GameDistribution standard API
-    console.log("[GameDistribution] Invoking gdsdk.showAd()");
-    window.gdsdk.showAd().then(() => {
-      onAdCloseCallback();
-    }).catch((err) => {
-      console.warn("GD ad failed, running callback:", err);
-      onAdCloseCallback();
-    });
-    return;
-  }
-
-  if (AD_CONFIG.provider === 'ADSENSE' && isAdSDKReady()) {
-    // Google H5 Games Ads / AdSense for games API
-    console.log("[AdSense] Calling Google adBreak()");
-    window.adBreak({
-      type: 'start',
-      name: 'interstitial_transition',
-      beforeAd: () => { console.log("AdSense about to show"); },
-      afterAd: () => { onAdCloseCallback(); },
-      adDismissed: () => { onAdCloseCallback(); },
-      adViewed: () => { onAdCloseCallback(); },
-      adBreakDone: (placementInfo) => {
-        console.log("AdSense completed", placementInfo);
-        onAdCloseCallback();
-      }
-    });
-    return;
-  }
-
-  // DEFAULT / SIMULATED BACKUP RUNNER
-  triggerSimulatedInterstitial(onAdCloseCallback);
-}
-
-/**
- * Request and play a Rewarded Video Ad (called when player requests a free Revive).
- * @param {Function} onAdSuccessCallback - Triggered if user watches successfully.
- * @param {Function} onAdFailureCallback - Triggered if user skips/fails video.
- */
-function sdkShowRewardedAd(onAdSuccessCallback, onAdFailureCallback) {
-  console.log(`[AdSDK] Requesting Rewarded Video via provider: ${AD_CONFIG.provider}`);
-
-  if (AD_CONFIG.provider === 'GAMEPIX' && isAdSDKReady()) {
-    console.log("[GamePix] Invoking GamePix.rewardAd()");
-    window.GamePix.rewardAd().then((res) => {
-      if (res && res.success) {
-        onAdSuccessCallback();
-      } else {
-        onAdFailureCallback();
-      }
-    }).catch((err) => {
-      console.warn("GamePix Reward flow failed", err);
-      onAdFailureCallback();
-    });
-    return;
-  }
-
-  if (AD_CONFIG.provider === 'GAMEDISTRIBUTION' && isAdSDKReady()) {
-    console.log("[GameDistribution] Invoking gdsdk.showAd('rewarded')");
-    window.gdsdk.showAd('rewarded').then(() => {
-      onAdSuccessCallback();
-    }).catch((err) => {
-      console.warn("GD Reward ad failed:", err);
-      onAdFailureCallback();
-    });
-    return;
-  }
-
-  if (AD_CONFIG.provider === 'ADSENSE' && isAdSDKReady()) {
-    console.log("[AdSense] Requesting rewarded ad breakout");
-    window.adBreak({
-      type: 'reward',
-      name: 'revive_premium',
-      beforeAd: () => {},
-      afterAd: () => {},
-      adDismissed: () => { onAdFailureCallback(); },
-      adViewed: () => { onAdSuccessCallback(); },
-      adBreakDone: (placementInfo) => {
-        if (placementInfo.breakStatus === 'viewed') {
-          onAdSuccessCallback();
-        } else {
-          onAdFailureCallback();
-        }
-      }
-    });
-    return;
-  }
-
-  // DEFAULT / SIMULATED BACKUP RUNNER
-  triggerSimulatedRewarded(onAdSuccessCallback, onAdFailureCallback);
-}
 
 
 // ==========================================
@@ -660,10 +526,6 @@ function initDOMListeners() {
   // Revive responses
   document.getElementById('btn-spend-shards-revive').addEventListener('click', () => {
     attemptShardsRevive();
-  });
-
-  document.getElementById('btn-watch-ad-revive').addEventListener('click', () => {
-    attemptRewardedAdRevive();
   });
 
   document.getElementById('btn-decline-revive').addEventListener('click', () => {
@@ -1361,18 +1223,13 @@ function triggerPlayerCrash(obs) {
     safeStorage.setItem('neon_runner_highscore', String(highScoreValue));
   }
 
-  // Increment total crashes
-  countGameOverRuns++;
-  safeStorage.setItem('neon_runner_gameover_count', String(countGameOverRuns));
-
   // Determine if player has option to revive, else straight to terminal death screen
   setTimeout(() => {
     if (!hasRevivedInCurrentRun) {
       // Prompt user option revive menu
       launchReviveDecisionDialog();
     } else {
-      // Proceed straight to standard interstitial check before gameover
-      executeTerminalGameOverWithInterstitial();
+      displayGameOverMenuSummary();
     }
   }, 700);
 }
@@ -1434,30 +1291,6 @@ function attemptShardsRevive() {
   }
 }
 
-function attemptRewardedAdRevive() {
-  // Display loading simulation
-  document.getElementById('revive-options-flow').classList.add('hidden');
-  document.getElementById('revive-ad-playing-flow').classList.remove('hidden');
-
-  // Request high conversion ad completion via modular hook
-  sdkShowRewardedAd(() => {
-    // SUCCESS CALLBACK
-    setTimeout(() => {
-      // Revert loading flow views
-      document.getElementById('revive-options-flow').classList.remove('hidden');
-      document.getElementById('revive-ad-playing-flow').classList.add('hidden');
-      executeRevivePulseAnimation();
-    }, 100);
-  }, () => {
-    // FAILURE OR CANCELED VIDEO ADS CALLBACK
-    setTimeout(() => {
-      document.getElementById('revive-options-flow').classList.remove('hidden');
-      document.getElementById('revive-ad-playing-flow').classList.add('hidden');
-      alert("Transmission interrupted. Watch full transmission to receive a free revive!");
-    }, 100);
-  });
-}
-
 function executeRevivePulseAnimation() {
   hasRevivedInCurrentRun = true;
   document.getElementById('revive-overlay').classList.add('hidden');
@@ -1501,26 +1334,13 @@ function executeRevivePulseAnimation() {
 
 function declineReviveToGameOver() {
   document.getElementById('revive-overlay').classList.add('hidden');
-  executeTerminalGameOverWithInterstitial();
+  displayGameOverMenuSummary();
 }
 
 
 // ==========================================
-// 12. RUN-END OVERLAYS AND AD TRANSLATIONS
+// 12. RUN-END OVERLAYS
 // ==========================================
-
-function executeTerminalGameOverWithInterstitial() {
-  // Check frequency levels to play interstitial screen ads (e.g., every 3rd game over)
-  if (countGameOverRuns % AD_CONFIG.interstitialFrequency === 0) {
-    sdkShowInterstitialAd(() => {
-      // Continue to display final score summary overlay after ad completes/closes
-      displayGameOverMenuSummary();
-    });
-  } else {
-    // Show summary immediately if not ad turn threshold
-    displayGameOverMenuSummary();
-  }
-}
 
 function displayGameOverMenuSummary() {
   soundManager.stopBGM();
@@ -1543,82 +1363,4 @@ function returnToLobbyTerminal() {
   currentGameState = 'MENU';
   refreshStatsUI();
   drawStaticLobbyFrame();
-}
-
-
-// ==========================================
-// 13. SIMULATED COUNTER ENGINES (FOR DEMO/OFFLINE)
-// ==========================================
-
-function triggerSimulatedRewarded(onSuccess, onFailure) {
-  let timeLeft = 5;
-  const progressFill = document.getElementById('revive-ad-progress');
-  const durationText = document.getElementById('simulated-ad-timer-text');
-
-  if (progressFill) progressFill.style.width = '0%';
-  if (durationText) durationText.textContent = `[Simulated Video Ad: ${timeLeft}s remaining]`;
-
-  const intervalId = setInterval(() => {
-    timeLeft--;
-    const pct = ((5 - timeLeft) / 5) * 100;
-    if (progressFill) progressFill.style.width = `${pct}%`;
-    if (durationText) durationText.textContent = `[Simulated Video Ad: ${timeLeft}s remaining]`;
-
-    if (timeLeft <= 0) {
-      clearInterval(intervalId);
-      onSuccess();
-    }
-  }, 1000);
-}
-
-function triggerSimulatedInterstitial(onComplete) {
-  const overlay = document.getElementById('interstitial-overlay');
-  const progressFill = document.getElementById('interstitial-ad-progress');
-  const timerText = document.getElementById('interstitial-countdown-display');
-  const closeBtn = document.getElementById('btn-close-interstitial');
-  const searchStatus = document.getElementById('interstitial-searching-bar');
-
-  if (!overlay) {
-    onComplete();
-    return;
-  }
-
-  // Show simulated fullscreen modal deck
-  overlay.classList.remove('hidden');
-  if (progressFill) progressFill.style.width = '0%';
-  if (closeBtn) closeBtn.classList.add('hidden');
-  if (searchStatus) searchStatus.classList.remove('hidden');
-
-  let timeLeft = 5;
-  if (timerText) timerText.textContent = `[Simulated Sponsor ad: ${timeLeft}s remaining]`;
-
-  const intervalId = setInterval(() => {
-    timeLeft--;
-    const pct = ((5 - timeLeft) / 5) * 100;
-    if (progressFill) progressFill.style.width = `${pct}%`;
-    if (timerText) timerText.textContent = `[Simulated Sponsor ad: ${timeLeft}s remaining]`;
-    if (searchStatus) searchStatus.textContent = `SATELLITE SIGNAL OPTIMIZING... ${timeLeft}S`;
-
-    if (timeLeft <= 0) {
-      clearInterval(intervalId);
-      
-      // Auto-unlock active Close button
-      if (searchStatus) searchStatus.classList.add('hidden');
-      if (closeBtn) {
-        closeBtn.classList.remove('hidden');
-        
-        // Single listener hook to proceed on close click
-        const singleCloseHandler = () => {
-          overlay.classList.add('hidden');
-          closeBtn.removeEventListener('click', singleCloseHandler);
-          onComplete();
-        };
-        closeBtn.addEventListener('click', singleCloseHandler);
-      } else {
-        // Fallback auto close if element missing
-        overlay.classList.add('hidden');
-        onComplete();
-      }
-    }
-  }, 1000);
 }
