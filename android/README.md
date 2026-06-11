@@ -1,66 +1,68 @@
-# Neon Runner - Native Android Jetpack Compose Game Template
+# Neon Runner - Android WebView TypeScript Game Wrapper
 
-This folder contains a fully features, production-ready Jetpack Compose port of your **Neon Runner** 2D web arcade game! 
-We've mapped all core coordinates, particle physics, skin stores, and state-flow transitions directly to Android's modern native ecosystem.
+This folder contains a fully streamlined, high-performance Android host wrapper of your **Neon Runner** 2D web arcade game! 
 
-## 📱 Project Architecture
-
-The app is built following Google's modern Android development guidelines:
-- **Language**: Kotlin 1.9+
-- **Architecture**: Single Activity (`MainActivity`) with reactive UI and state flow
-- **UI Toolkit**: Jetpack Compose (Declarative UI layout)
-- **Game Engine**: Custom Native Compose Canvas (`Canvas` composable) running a tick-based physics frame loop backed by Compose's `withFrameMillis`
-- **Audio Synthesizer**: Native Android SDK `SoundPool` for optimized, zero-latency retro sound effects
-- **Persistence**: Android `SharedPreferences` for off-line storage of Highscores, cumulative Shards, active Selected Skin, and unlocked skins.
+Rather than maintaining two completely redundant codebases (a Kotlin game loop and a Web TypeScript game loop), we have transitioned the Android app to operate over a single, standardized, high-performance **WebView** shell container. This brings 100% feature parity, zero code duplication, and extreme performance!
 
 ---
 
-## 📂 Source Code Structure
+## 📱 Project Architecture
 
-All native source files are located in: `/android/app/src/main/java/com/neon/runner/`
+The app wraps your React/TypeScript code using high-performance Android APIs:
+- **Core Wrapper**: Single Activity (`MainActivity.kt`) that inherits from modern `ComponentActivity`.
+- **Display Layer**: High-speed, Hardware-Accelerated standard Android `WebView` that fills the viewport.
+- **Orientation**: Immersive Fullscreen (`sensorLandscape` default) with `SYSTEM_UI_FLAG_IMMERSIVE_STICKY` enabled to hide status bars and gesture home keys.
+- **Runtime Optimization**: Enabled JavaScript, enabled HTML5 DOM storage API, and forced `FLAG_KEEP_SCREEN_ON` so the display does not timeout/sleep during run records.
+- **Single Source of Truth**: All coordinates, physics rendering, skin stores, achievements, and custom retro audio synths are driven straight from your polished **TypeScript** source.
+
+---
+
+## 📂 Project Structure
 
 ```text
 android/
-├── build.gradle.kts                             # Root Gradle file
-├── settings.gradle.kts                          # Project modules loading
+├── build.gradle.kts                             # Root Gradle configuration
+├── settings.gradle.kts                          # Project Gradle build settings
 └── app/
-    ├── build.gradle.kts                         # App module config with Compose dependencies
+    ├── build.gradle.kts                         # App module config with active dependencies
     └── src/
         └── main/
-            ├── AndroidManifest.xml              # Application specifications and permissions
+            ├── AndroidManifest.xml              # Safe Internet and Varnish feedback permissions config
+            ├── assets/                          # Local directory containing your compiled TypeScript bundle
+            │   └── index.html                   # HTML entry loaded relative via file:///android_asset/
             └── java/com/neon/runner/
-                ├── MainActivity.kt              # Entry host - coordinates state overlay layers
-                ├── types/
-                │   └── GameState.kt             # GameState enum configurations (MENU, PLAYING, etc.)
-                ├── data/
-                │   └── Skins.kt                 # Ported skin custom colors & price thresholds
-                ├── utils/
-                │   └── SoundManager.kt          # sound generator & mute adapters
-                └── components/
-                    ├── NeonRunnerGame.kt        # The core 2D GameLoop update & rendering engine
-                    └── SkinShop.kt              # Retro styling interface for buying skins
+                └── MainActivity.kt              # Entry WebView Host Controller (handles fullscreen & settings)
 ```
 
 ---
 
-## 🚀 How to Import and Run in Android Studio
+## 🛠️ How to Sync and Compile
 
-Follow these simple steps to run this game on your physical Android device or Emulator:
+To generate the Android bundle and run it, follow these steps:
 
-1. **Open Android Studio** (Hedgehog 2023.1.1 or newer recommended).
-2. Click **File** -> **New** -> **Import Project...** (or click **Open** on the Welcome screen).
-3. Navigate to the folder where you exported or downloaded the code and select the **`android`** subfolder.
-4. Let Gradle fetch files and perform dependencies sync (this might take a minute on the first download).
-5. **Set up virtual or physical device**:
-   - For an emulator: Create high-refresh Device profile in Device Manager.
-   - For physical hardware: Enable USB Debugging in Developers Options on your phone, and plug it in.
-6. Click the green **Run (Play button)** at the top right header!
+1. **Build Your Web Assets**:
+   Make sure to compile your latest React/TypeScript code by running:
+   ```bash
+   npm run build
+   ```
+   This compiles everything relative (via `base: "./"` in `vite.config.ts`) and outputs files to the `dist/` directory.
+
+2. **Copy the Compiled Build into Android Assets**:
+   Create a directory labeled `assets` under `android/app/src/main/` if it does not exist, and copy your bundle contents into it:
+   ```bash
+   mkdir -p android/app/src/main/assets
+   cp -r dist/* android/app/src/main/assets/
+   ```
+
+3. **Import to Android Studio**:
+   - Open Android Studio (Hedgehog or newer recommended).
+   - Class-select **Open** and direct to the **`/android`** subdirectory.
+   - Run the project on any emulator or connected physical Android device!
 
 ---
 
-## 🎨 Game Loop Mapping Details
+## 🎨 Advantages of TypeScript Hybrid Flow
 
-Here is how the original React Canvas has been converted to Jetpack Compose:
-- **V_WIDTH/V_HEIGHT Layout Scaler**: The canvas viewport leverages Compose's `DrawScope` scale transforms, scaling standard pixel layouts to fit all display orientations and aspect ratios cleanly.
-- **Audio Synthesis**: High-speed jump, crash, buy, and item collection synthetics are managed via Android's high-speed audio pipeline using `SoundPool` to prevent rendering frame dropouts.
-- **Garbage Collection Optimization**: Both obstacle arrays and floating text queues avoid heavy object allocations during physics frame updates (`withFrameMillis`) to bypass Android's Garbage collector overhead.
+- **Zero Core Drifts**: Never redevelop core mechanics (e.g. particles, obstacle heights, coins) in parallel languages; write once in TypeScript, compile, and run everywhere.
+- **Optimal Hardware Canvas**: Standard Web canvas is hardware accelerated directly inside Android's WebView.
+- **Local Persistence Mapping**: The game's store and highscore states seamlessly resolve using the WebView's robust local storage implementation.
