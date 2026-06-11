@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Cyberspace Runner - Monetized Retro Arcade</title>
+  
+  <!-- Retro Fonts Integration -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&family=Space+Grotesk:wght@500;700;900&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons Web Script (for pixel perfect retro dashboard vectors) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Background Cyber scanlines -->
+  <div class="cyber-scanlines"></div>
+
+  <!-- Game Wrapper Frame -->
+  <div class="game-wrapper" id="game-container">
+    
+    <!-- Responsive Canvas Board -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- LIVE RUN-TIME HUD -->
+    <div class="hud-layer hidden" id="game-hud">
+      <div class="hud-stats">
+        <div class="hud-stat-box">
+          <span class="hud-label">SCORE</span>
+          <span class="hud-value" id="hud-score-value">000000</span>
+        </div>
+        <div class="hud-stat-box accent">
+          <span class="hud-label">◆ SHARDS</span>
+          <span class="hud-value" id="hud-shards-value">00</span>
+        </div>
+      </div>
+      <button class="sound-toggle-btn" id="hud-sound-toggle" title="Toggle Sound">
+        <i data-lucide="volume-2" id="sound-icon"></i>
+      </button>
+    </div>
+
+    <!-- MAIN MENU OVERLAY DEFAULT STATE -->
+    <div class="overlay-layer" id="menu-overlay">
+      <div class="menu-content text-center">
+        <div class="glow-title-container">
+          <h1 class="logo-text">CYBERSPACE<br><span class="highlight">RUNNER</span></h1>
+        </div>
+        <p class="subtitle">AUTOMATED REFLEX SYSTEM v4.9 // MONETIZED PREVIEW</p>
+        
+        <!-- Score & Balance Dashboard -->
+        <div class="dashboard-widget">
+          <div class="dash-item border-r">
+            <span class="dash-lbl">★ HIGHSCORE</span>
+            <span class="dash-val text-yellow" id="menu-highscore-val">0 PTS</span>
+          </div>
+          <div class="dash-item">
+            <span class="dash-lbl">◆ TOTAL SHARDS</span>
+            <span class="dash-val text-amber" id="menu-shards-val">0</span>
+          </div>
+        </div>
+
+        <div class="menu-actions">
+          <button class="btn btn-primary animate-pulse" id="btn-start-run">
+            <i data-lucide="play" class="btn-icon"></i> START RUN
+          </button>
+          <button class="btn btn-secondary" id="btn-open-shop">
+            <i data-lucide="sparkles" class="btn-icon"></i> SKIN CORES SHOP
+          </button>
+        </div>
+
+        <!-- Audio Setup Controller Toggle -->
+        <div class="audio-toggle-link" id="menu-audio-toggle">
+          <i data-lucide="volume-2"></i> <span>SYSTEM AUDIO LIVE</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SKIN CORES SHOP OVERLAY -->
+    <div class="overlay-layer hidden" id="shop-overlay">
+      <div class="shop-content">
+        <!-- Shop Header -->
+        <div class="shop-header">
+          <button class="btn-back" id="btn-shop-back">
+            <i data-lucide="chevron-left"></i> BACK
+          </button>
+          <h2 class="shop-title">CYBERNETIC CORES SHOP</h2>
+          <div class="shop-balance">
+            <span class="balance-icon">◆</span>
+            <span class="balance-text" id="shop-shards-val">0 SHARDS</span>
+          </div>
+        </div>
+        <p class="shop-instructions">EXCHANGE SPARKING NEON REACTION CORES FOR EXOTIC TRAILS</p>
+
+        <!-- Grid Container for Skins Selection list -->
+        <div class="skins-grid" id="skins-grid-container">
+          <!-- Populated Dynamically via game.js -->
+        </div>
+      </div>
+    </div>
+
+    <!-- RECONSTRUCT AVATAR / REVIVE SELECTION DIALOG -->
+    <div class="overlay-layer hidden" id="revive-overlay">
+      <div class="modal-box red-border" id="revive-dialog-box">
+        <!-- Standard Option view -->
+        <div class="dialog-standard-view" id="revive-options-flow">
+          <div class="chassis-status-tag">CHASSIS SYNC INTERRUPTED</div>
+          <h3 class="modal-heading">RECONSTRUCT AVATAR?</h3>
+          <p class="modal-description">Spend <span class="cyan-text">5 Shards</span> or <span class="pink-text">Watch a Sponsor Transmission</span> to continue your highscore run!</p>
+          
+          <div class="score-panel">
+            <span class="score-lbl">CURRENT SCORE</span>
+            <span class="score-val" id="revive-score-display">0000 PTS</span>
+          </div>
+
+          <div class="modal-button-stack">
+            <!-- Shards revive trigger -->
+            <button class="btn btn-cyan justify-between" id="btn-spend-shards-revive">
+              <span class="icon-text"><i data-lucide="coins"></i> SPEND 5 SHARDS</span>
+              <span class="badge" id="revive-shards-badge">BAL: 0</span>
+            </button>
+            
+            <!-- Video Ad action trigger -->
+            <button class="btn btn-primary" id="btn-watch-ad-revive">
+              <i data-lucide="play" class="btn-icon animate-pulse"></i> WATCH TRANSMISSION
+            </button>
+            
+            <button class="decline-link" id="btn-decline-revive">No thanks, End Game</button>
+          </div>
+        </div>
+
+        <!-- Video Ad Loader deck simulator -->
+        <div class="dialog-ad-view hidden" id="revive-ad-playing-flow">
+          <div class="bounce-circ">
+            <i data-lucide="play" class="text-pink animate-pulse"></i>
+          </div>
+          <h3 class="ad-title font-mono font-bold text-pink animate-pulse">LOADING SPONSOR TRANSMISSION...</h3>
+          <p class="ad-timer" id="simulated-ad-timer-text">[Simulated Video Ad: 5s remaining]</p>
+          
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill shadow-pink" id="revive-ad-progress"></div>
+          </div>
+          
+          <span class="stream-info">STREAMING OPTIMIZED SYSTEM BACKUP DATA</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN GAME OVER HUD OVERLAY -->
+    <div class="overlay-layer hidden" id="gameover-overlay">
+      <div class="modal-box border-red text-center">
+        <h2 class="text-red font-black tracking-widest gameover-heading">CHASSIS UNRECOVERABLE</h2>
+        <span class="gameover-code">TERMINAL CODE G_CRASH</span>
+
+        <div class="score-summary-card">
+          <div class="summary-line">
+            <span class="gray-lbl">FINAL SCORE</span>
+            <span class="yellow-val text-glow-yellow" id="gameover-score-val">0 PTS</span>
+          </div>
+          <div class="divider"></div>
+          <div class="summary-line">
+            <span class="gray-lbl">SHARDS COLLECTED</span>
+            <span class="amber-val" id="gameover-shards-gained">+0</span>
+          </div>
+        </div>
+
+        <div class="menu-actions stacked">
+          <button class="btn btn-primary py-4 uppercase font-mono" id="btn-retry-game">
+            <i data-lucide="rotate-ccw" class="btn-icon"></i> RE-BOOT CODE (G_RETRY)
+          </button>
+          <button class="btn btn-secondary" id="btn-exit-lobby">
+            EXIT TO LOBBY TERMINAL
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FULL SCREEN INTERSTITIAL SPONSOR AD OVERLAY -->
+    <div class="overlay-layer hidden select-none" id="interstitial-overlay">
+      <div class="interstitial-modal">
+        <div class="corner-bracket top-left"></div>
+        <div class="corner-bracket top-right"></div>
+        <div class="corner-bracket bottom-left"></div>
+        <div class="corner-bracket bottom-right"></div>
+
+        <div class="interstitial-icon-ring animate-pulse">
+          <i data-lucide="sparkles"></i>
+        </div>
+
+        <h2 class="ad-title animate-pulse">LOADING SPONSOR TRANSMISSION...</h2>
+
+        <div class="adsense-banner-placeholder">
+          <p class="ad-timer" id="interstitial-countdown-display">[Simulated Video Ad: 5s remaining]</p>
+          <div class="ad-separator"></div>
+          <div class="ad-details">
+            <span class="stream-info cyan-text text-left">RETRO-AD DATA STREAM</span>
+            <p class="ad-italic">"GET ULTRA-CHARGED CYBER GLOW DRINK. FUEL YOUR QUANTUM LIGHT SPEED RUN!"</p>
+          </div>
+        </div>
+
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill shadow-cyan" id="interstitial-ad-progress"></div>
+        </div>
+
+        <!-- Render active Close or satellite searching text status -->
+        <button class="btn btn-amber py-4 uppercase font-black hidden" id="btn-close-interstitial">
+          CLOSE AD
+        </button>
+        <div class="satellite-bar text-uppercase font-mono text-gray" id="interstitial-searching-bar">
+          SATELLITE SIGNAL OPTIMIZING... 5S
+        </div>
+
+        <p class="footer-crypto">TRANSMISSION ENCRYPTED VIA G-SYNC PROTOCOLS</p>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="footer-credits">
+    <p class="text-glow-cyan font-mono text-[10px] py-4 leading-normal uppercase">
+      [ DEEP COGNITION CYBER RETRO CONSOLE SYSTEM - POWERED BY GEMINI ]
+    </p>
+  </footer>
+
+  <!-- Connect standard retro arcade engine scripts -->
+  <script src="game.js"></script>
+
+</body>
+</html>

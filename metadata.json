@@ -1,0 +1,6 @@
+{
+  "name": "Neon Runner",
+  "description": "An addictive 2D neon-themed endless runner game with fluid canvas graphics, sound effects synthetics, particle explosions, and score multipliers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
